@@ -190,7 +190,27 @@ app.delete('/image', function (req, res) {
         res.send(data);
     });
 });
-
+app.put('/image', function (req, res) {
+    // TODO: update in MySQL as well
+    var OLD_KEY = req.body.name;
+    var NEW_KEY = req.body.newName;
+    var newparams = {
+        Bucket: config.bucket,
+        CopySource: `${config.bucket}/${OLD_KEY}`,
+        Key: NEW_KEY
+    };
+    var oldparams = {
+        Bucket: config.bucket,
+        Key: OLD_KEY
+    };
+    s3.copyObject(newparams,function (err,data) {
+        s3.deleteObject(oldparams,function (er,dat) {
+            if(er) throw er;
+        });
+        if(err) throw err;
+        res.send(data);
+    })
+})
 
 
 
