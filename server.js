@@ -1,3 +1,5 @@
+console.log('SERVER IS STARTING!!! C:');
+
 ///// MODULES /////
 const express = require(`express`);
 const app = express();
@@ -5,17 +7,18 @@ const aws = require('aws-sdk');
 const multer = require('multer');
 const fs = require('fs-extra');
 const { dbConnection } = require('./db');
-const config = require('./config.json');
 
 
 ///// CONSTANTS /////
 const PORT = 3000;
 
+// ENV //
+require('dotenv').config();
+
 // S3 //
-console.log(config.accessKeyId, config.secretAccessKey);
 const s3 = new aws.S3({
-    accessKeyId: config.accessKeyId,
-    secretAccessKey: config.secretAccessKey
+    accessKeyId: process.env.accessKeyId,
+    secretAccessKey: process.env.secretAccessKey
 });
 
 // MULTER //
@@ -37,7 +40,7 @@ app.use(express.json()); // parse JSON and place it in req.body
 ///// ROUTES /////
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
-app.get(`/`, (req, res) => res.send('Welcome!') );
+app.get(`/`, (req, res) => res.send(`Welcome to Cloud Photo Album's API!!! c:`) );
 
 // USERS //
 app.post(`/create_user`, async (req, res) => {
@@ -130,7 +133,7 @@ app.post('/upload_picture', upload.single('file'), function (req, res) {
     console.log(req.body);
     const fileContent = fs.readFileSync(req.file.path);
     const params = {
-        Bucket: config.bucket,
+        Bucket: process.env.bucket,
         Key: name,
         Body: fileContent,
         ACL: 'public-read' // give public access to the image
@@ -184,7 +187,7 @@ app.post('/upload_picture', upload.single('file'), function (req, res) {
 });
 app.delete('/image', function (req, res) {
     // TODO: delete from MySQL as well
-    let params = { Bucket: config.bucket, Key: req.body.name };
+    let params = { Bucket: process.env.bucket, Key: req.body.name };
     s3.deleteObject(params, function (err, data) {
         if (err) throw err;  // error
         res.send(data);
@@ -195,12 +198,12 @@ app.put('/image', function (req, res) {
     var OLD_KEY = req.body.name;
     var NEW_KEY = req.body.newName;
     var newparams = {
-        Bucket: config.bucket,
-        CopySource: `${config.bucket}/${OLD_KEY}`,
+        Bucket: process.env.bucket,
+        CopySource: `${process.env.bucket}/${OLD_KEY}`,
         Key: NEW_KEY
     };
     var oldparams = {
-        Bucket: config.bucket,
+        Bucket: process.env.bucket,
         Key: OLD_KEY
     };
     s3.copyObject(newparams,function (err,data) {

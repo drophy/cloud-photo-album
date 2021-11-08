@@ -1,13 +1,15 @@
 const mysql = require('mysql');
 const util = require('util');
-const config = require('./config.json');
+
+// ENV //
+require('dotenv').config();
 
 const dbConnection = mysql.createConnection({
-    host: config.host,
-    user: config.user,
-    port: config.port,
-    password: config.password,
-    database: config.database
+    host: process.env.host,
+    user: process.env.user,
+    port: process.env.port,
+    password: process.env.password,
+    database: process.env.database
 });
 
 // node native promisify
