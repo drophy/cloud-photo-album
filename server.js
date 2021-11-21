@@ -3,36 +3,14 @@ console.log('SERVER IS STARTING!!! C:');
 ///// MODULES /////
 const express = require(`express`);
 const app = express();
-const aws = require('aws-sdk');
-const multer = require('multer');
-const fs = require('fs-extra');
+
+require('dotenv').config(); // so we can access env vars (as process.env)
+const router = require('./router');
 const { dbConnection } = require('./db');
 
 
 ///// CONSTANTS /////
 const PORT = 3000;
-
-// ENV //
-require('dotenv').config();
-
-// S3 //
-const s3 = new aws.S3({
-    accessKeyId: process.env.accessKeyId,
-    secretAccessKey: process.env.secretAccessKey
-});
-
-// MULTER //
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './uploads/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    },
-})
-const upload = multer({
-    storage: storage
-});
 
 ///// MIDDLEWARE /////
 app.use(express.json()); // parse JSON and place it in req.body
@@ -41,34 +19,7 @@ app.use(express.json()); // parse JSON and place it in req.body
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
 app.get(`/`, (req, res) => res.send(`Welcome to Cloud Photo Album's API!!! c:`) );
-
-// USERS //
-app.post(`/create_user`, async (req, res) => {
-    const email = req.body.email;
-    if (!email) {
-        res.status(400).send('Bad request: missing email attribute');
-        return;
-    }
-
-    // Create user in Users table
-    let query = `INSERT INTO Users (Email) VALUES ('${email}');`;
-    dbConnection.query(query, function(error, results, fields) {
-        if (error) throw error;
-        console.log(results);
-
-        // Create a root folder for user
-        let userId = results.insertId;
-        query = `INSERT INTO Folders (UserId, Name, Children) VALUES (${userId}, 'root', '[]');`
-        dbConnection.query(query, function(error, results, fields) {
-            if (error) throw error;
-            console.log(results);
-        });
-    });
-    // TODO: figure out how to catch errors (e.g. when duplicate emails are given)
-
-    res.status(200).send('User created');
-});
-// TODO: Create a method to DELETE and EDIT user as well
+app.use(router);
 
 // FOLDERS //
 app.post('/create_folder', (req, res) => {
@@ -113,7 +64,7 @@ app.post('/create_folder', (req, res) => {
 });
 
 // MEDIA //
-
+/*
 app.post('/upload_picture', upload.single('file'), function (req, res) {
     const name = req.body.name;
     const userId = req.body.userId;
@@ -179,7 +130,7 @@ app.post('/upload_picture', upload.single('file'), function (req, res) {
                     
 
                     // Inform request was successful
-                    res.status(200).send('Folder created');
+                    res.status(200).send('Image created');
                 });
             });
         });
@@ -214,7 +165,7 @@ app.put('/image', function (req, res) {
         res.send(data);
     })
 })
-
+*/
 
 
 
