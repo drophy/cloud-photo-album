@@ -3,7 +3,7 @@ const aws = require('aws-sdk');
 const multer = require('multer');
 const fs = require('fs-extra');
 
-const { dbConnection } = require('./../db');
+const { dbConnection, dbQuery } = require('./../db');
 
 // S3 //
 const s3 = new aws.S3({
@@ -15,7 +15,7 @@ const s3 = new aws.S3({
 // MULTER //
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './uploads/');
+        cb(null, './temp/images/');
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname);
@@ -57,7 +57,7 @@ router.put('/', function (req, res) {
     })
 })
 
-router.post('/', upload.single('file'), function (req, res) {
+router.post('/', upload.single('file'), async function (req, res) {
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId;
@@ -69,9 +69,8 @@ router.post('/', upload.single('file'), function (req, res) {
     } catch (error) {
         res.status(400).send('Error: tags field could not be parsed as JSON');
     }
-    
 
-    // UPLOAD TO S3
+    // UPLOAD IMAGE TO S3
     const fileContent = fs.readFileSync(req.file.path);
     const params = {
         Bucket: process.env.bucket,
@@ -79,52 +78,63 @@ router.post('/', upload.single('file'), function (req, res) {
         Body: fileContent,
         ACL: 'public-read' // give public access to the image
     };
-    console.log('Uploading to S3...');
-    s3.upload(params, function (err, data) {
-        if (err) { console.log('YUP, error was here'); throw err; }
-        console.log(`File uploaded successfully. ${data.Location}`);
-        fs.remove(req.file.path);
 
-        // UPDATE MYSQL
-        // Media table
-        let query = `INSERT INTO Media (UserId, Name, Url, Location) VALUES (${userId}, '${name}', '${data.Location}', '${location}');`;
-        dbConnection.query(query, function(error, results, fields) {
-            if (error) throw error; 
-            console.log(results);
+    let uploadImageResult;
+    try {
+        uploadImageResult = await s3.upload(params).promise();    
+    } catch (error) {
+        res.send(500).send('Error: could not upload image to AWS S3');
+        return;
+    }
 
-            const mediaId = 'M' + results.insertId;
+    // Remove temp copy we created in server
+    fs.remove(req.file.path);
+    
+    // UPDATE MYSQL DB
+    // Media table
+    let query = `INSERT INTO Media (UserId, Name, Url, Location) VALUES (${userId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
+    let mediaTableInsertResult;
+    try {
+        mediaTableInsertResult = await dbQuery(query);
+    } catch (error) {
+        res.status(400).send(error.sqlMessage || 'Error: Could not insert image into media table');
+        return;
+    }
 
-            // Folder Table
-            query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
-            dbConnection.query(query, function(error, results, fields) {
-                if (error) throw error;
-                console.log(results);
-                const folder = results[0];
+    // Find folder
+    const mediaId = 'M' + mediaTableInsertResult.insertId;
+
+    query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
+    let selectFolderResult;
+    try {
+        selectFolderResult = await dbQuery(query);
+    } catch (error) {
+        res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+        return;
+    }
         
-                // Verify user owns the folder
-                if(folder.UserId != userId) {
-                    res.status(400).send("Error: Folder doesn't belong to user");
-                    return;
-                }
-        
-                // Add new media to children of parent folder
-                let children = JSON.parse(folder.Children);
-                children.push(mediaId);
+    // Verify user owns the folder
+    const folder = selectFolderResult[0];
 
-                query = `UPDATE Folders SET Children = '${JSON.stringify(children)}' WHERE FolderId = ${folderId}`;
-                dbConnection.query(query, function(error, results) {
-                    if (error) throw error;
-                    console.log(results);
+    if(folder.UserId != userId) {
+        res.status(400).send("Error: Folder doesn't belong to user");
+        return;
+    }
 
-                    // TODO: TAGS TABLE
-                    
+    // Add new media to children of parent folder
+    const children = JSON.parse(folder.Children);
+    children.push(mediaId);
 
-                    // Inform request was successful
-                    res.status(200).send('Image created');
-                });
-            });
-        });
-    });
+    query = `UPDATE Folders SET Children = '${JSON.stringify(children)}' WHERE FolderId = ${folderId}`;
+    try {
+        await dbQuery(query);
+    } catch (error) {
+        res.status(400).send(error.sqlMessage || `Error: Could add picture to children of folder with id ${folderId}`);
+        return;
+    }
+
+    // Inform request was successful
+    res.status(200).send('Image created');
 });
 
 module.exports = router;
