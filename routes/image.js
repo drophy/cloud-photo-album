@@ -3,7 +3,7 @@ const aws = require('aws-sdk');
 const multer = require('multer');
 const fs = require('fs-extra');
 
-const { dbConnection, dbQuery } = require('./../db');
+const { dbQuery } = require('./../db');
 
 // S3 //
 const s3 = new aws.S3({
@@ -83,7 +83,8 @@ router.post('/', upload.single('file'), async function (req, res) {
     try {
         uploadImageResult = await s3.upload(params).promise();    
     } catch (error) {
-        res.send(500).send('Error: could not upload image to AWS S3');
+        res.status(500).send('Error: could not upload image to AWS S3');
+        console.log(error);
         return;
     }
 
@@ -92,7 +93,7 @@ router.post('/', upload.single('file'), async function (req, res) {
     
     // UPDATE MYSQL DB
     // Media table
-    let query = `INSERT INTO Media (UserId, Name, Url, Location) VALUES (${userId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
+    let query = `INSERT INTO Media (UserId, ParentId, Name, Url, Location) VALUES (${userId}, ${folderId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
     let mediaTableInsertResult;
     try {
         mediaTableInsertResult = await dbQuery(query);
@@ -133,8 +134,10 @@ router.post('/', upload.single('file'), async function (req, res) {
         return;
     }
 
+    // TODO: TAGS TABLE
+
     // Inform request was successful
-    res.status(200).send('Image created');
+    res.status(200).send('Image created (tags are currently ignored)');
 });
 
 module.exports = router;
