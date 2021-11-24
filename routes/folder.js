@@ -54,6 +54,16 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     const folderId = req.query.folderId;
 
+    
+    // Get data about the folder
+    let selectFolderResult;
+    try {
+        selectFolderResult = await dbQuery(`SELECT * FROM Folders WHERE FolderId = ${folderId}`);
+    } catch (error) {
+        res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+    }
+    const folderData = selectFolderResult[0];
+
     // TODO: verify user owns folder
 
     // Get children folders
@@ -62,7 +72,6 @@ router.get('/', async (req, res) => {
         getFoldersResult = await dbQuery(`SELECT * FROM Folders WHERE ParentId = ${folderId}`);
     } catch (error) {
         res.status(500).send(error.sqlMessage || `Error: Could not get children folders`);
-        console.log(error);
         return;
     }
 
@@ -79,7 +88,7 @@ router.get('/', async (req, res) => {
 
     const images = getImagesResult.map(i => { return {'mediaId': i.MediaId, 'name': i.Name, 'url': i.Url, 'thumbnailUrl': i.ThumbnailUrl} });
 
-    res.status(200).send({folders, images});
+    res.status(200).send({folderName: folderData.Name, folders, images});
 });
 
 module.exports = router;
