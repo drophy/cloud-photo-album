@@ -62,6 +62,8 @@ router.get('/', async (req, res) => {
         getFoldersResult = await dbQuery(`SELECT * FROM Folders WHERE ParentId = ${folderId}`);
     } catch (error) {
         res.status(500).send(error.sqlMessage || `Error: Could not get children folders`);
+        console.log(error);
+        return;
     }
 
     const folders = getFoldersResult.map(f => { return {'folderId': f.FolderId, 'name': f.Name} });
@@ -72,6 +74,7 @@ router.get('/', async (req, res) => {
         getImagesResult = await dbQuery(`SELECT * FROM Media WHERE ParentId = ${folderId}`);
     } catch (error) {
         res.status(500).send(error.sqlMessage || `Error: Could not get images`);
+        return;
     }
 
     const images = getImagesResult.map(i => { return {'mediaId': i.MediaId, 'name': i.Name, 'url': i.Url, 'thumbnailUrl': i.ThumbnailUrl} });

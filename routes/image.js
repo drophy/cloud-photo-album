@@ -2,6 +2,7 @@ const router = require('express').Router();
 const aws = require('aws-sdk');
 const multer = require('multer');
 const fs = require('fs-extra');
+const { v4: uuidv4 } = require('uuid');
 
 const { dbQuery } = require('./../db');
 
@@ -72,9 +73,11 @@ router.post('/', upload.single('file'), async function (req, res) {
 
     // UPLOAD IMAGE TO S3
     const fileContent = fs.readFileSync(req.file.path);
+    const mediaId = uuidv4();
+    const imgExtension = name.substring(name.lastIndexOf('.'));
     const params = {
         Bucket: process.env.bucket,
-        Key: name,
+        Key: mediaId + imgExtension,
         Body: fileContent,
         ACL: 'public-read' // give public access to the image
     };
@@ -93,7 +96,8 @@ router.post('/', upload.single('file'), async function (req, res) {
     
     // UPDATE MYSQL DB
     // Media table
-    let query = `INSERT INTO Media (UserId, ParentId, Name, Url, Location) VALUES (${userId}, ${folderId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
+    let query = `INSERT INTO Media (MediaId, UserId, ParentId, Name, Url, Location) 
+                VALUES ('${mediaId}', ${userId}, ${folderId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
     let mediaTableInsertResult;
     try {
         mediaTableInsertResult = await dbQuery(query);
@@ -103,8 +107,6 @@ router.post('/', upload.single('file'), async function (req, res) {
     }
 
     // Find folder
-    const mediaId = 'M' + mediaTableInsertResult.insertId;
-
     query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
     let selectFolderResult;
     try {
