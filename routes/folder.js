@@ -52,8 +52,8 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+    const userId = req.query.userId;
     const folderId = req.query.folderId;
-
     
     // Get data about the folder
     let selectFolderResult;
@@ -64,7 +64,11 @@ router.get('/', async (req, res) => {
     }
     const folderData = selectFolderResult[0];
 
-    // TODO: verify user owns folder
+    // Verify user owns the folder
+    if(folderData.UserId != userId) {
+        res.status(400).send("Error: Folder doesn't belong to user");
+        return;
+    }
 
     // Get children folders
     let getFoldersResult;
