@@ -88,6 +88,7 @@ router.post('/', upload.single('file'), async function (req, res) {
     } catch (error) {
         res.status(500).send('Error: could not upload image to AWS S3');
         console.log(error);
+        fs.remove(req.file.path);
         return;
     }
 
