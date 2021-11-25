@@ -5,11 +5,11 @@ const util = require('util');
 require('dotenv').config();
 
 const dbConnection = mysql.createConnection({
-    host: process.env.host,
-    user: process.env.user,
-    port: process.env.port,
-    password: process.env.password,
-    database: process.env.database
+    host: process.env.db_host,
+    user: process.env.db_user,
+    port: process.env.db_port,
+    password: process.env.db_password,
+    database: process.env.db_name
 });
 
 // node native promisify
