@@ -10,7 +10,7 @@ const { dbConnection } = require('./db');
 
 
 ///// CONSTANTS /////
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 ///// MIDDLEWARE /////
 app.use(express.json()); // parse JSON and place it in req.body
