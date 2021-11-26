@@ -35,6 +35,10 @@ router.get('/', async (req, res) => {
             console.log(`Error: Could not get user's root folder (${error.sqlMessage})`);
             return;
         }
+        if(getRootResult.length < 1) {
+            res.status(500).send(`Error: Could not find user's root folder`);
+            return;
+        }
         const rootFolder = getRootResult[0];
         res.status(200).send({folderId: rootFolder.FolderId});
     }
