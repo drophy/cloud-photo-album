@@ -1,21 +1,21 @@
 const router = require('express').Router();
 const { dbQuery } = require('./../db');
 
-// Returns folderId of the root folder of the user. An 'email' and 'uid' query params are required.
+// Returns folderId of the root folder of the user. An 'email' and 'userId' query params are required.
 // If the user did not exist, it will be created
 router.get('/', async (req, res) => {
-    const uid = req.query.uid;
+    const userId = req.query.userId;
     const email = req.query.email;
 
-    if (!uid || !email) {
-        res.status(400).send('Bad request: missing uid or email query param');
+    if (!userId || !email) {
+        res.status(400).send('Bad request: missing userId or email query param');
         return;
     }
 
     // See if user exists
     let selectUserResult;
     try {
-        selectUserResult = await dbQuery(`SELECT * FROM Users WHERE UserId='${uid}'`);
+        selectUserResult = await dbQuery(`SELECT * FROM Users WHERE UserId='${userId}'`);
     }
     catch (error) {
         res.status(500).send('Error: Could not verify if user exists');
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     {
         let getRootResult;
         try {
-            getRootResult = await dbQuery(`SELECT * FROM Folders WHERE ParentId=-1 AND UserId='${uid}'`);
+            getRootResult = await dbQuery(`SELECT * FROM Folders WHERE ParentId=-1 AND UserId='${userId}'`);
         }
         catch (error) {
             res.status(500).send(`Error: Could not get user's root folder`);
@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
         // Else, we'll create the user
         let createUserResult;
         try {
-            createUserResult = await dbQuery(`INSERT INTO Users (UserId, Email) VALUES ('${uid}', '${email}');`);
+            createUserResult = await dbQuery(`INSERT INTO Users (UserId, Email) VALUES ('${userId}', '${email}');`);
         }
         catch (error) {
             res.status(500).send('Error: Could not insert user. Email might already exist in DB');
@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
         // And then create a root folder for that user
         let createFolderResult;
         try {
-            createFolderResult = await dbQuery(`INSERT INTO Folders (UserId, Name, Children) VALUES (${uid}, 'root', '[]');`);
+            createFolderResult = await dbQuery(`INSERT INTO Folders (UserId, Name, Children) VALUES (${userId}, 'root', '[]');`);
         } catch (error) {
             res.status(500).send('Error: Could not create root folder for user');
             console.log(`Error: Could not create root folder for user (${error.sqlMessage})`);

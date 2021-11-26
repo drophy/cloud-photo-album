@@ -27,13 +27,53 @@ const upload = multer({
 });
 
 ///// ROUTES /////
-router.delete('/', function (req, res) {
-    // TODO: delete from MySQL as well
-    let params = { Bucket: process.env.bucket, Key: req.body.name };
-    s3.deleteObject(params, function (err, data) {
-        if (err) throw err;  // error
-        res.send(data);
-    });
+// Deletes the specified picture. Requires 'mediaId' and 'userId' in body params
+router.delete('/', async function (req, res) {
+    const userId = req.body.userId;
+    const mediaId = req.body.mediaId;
+
+    // Get image data and verify user owns image
+    let getImageResult;
+    try {
+        getImageResult = await dbQuery(`SELECT * FROM Media WHERE UserId='${userId}' AND MediaId='${mediaId}'`);
+    }
+    catch (error) {
+        res.status(500).send('Error: Could not reach the image at this moment');
+        console.log(`Error: Could not reach the image at this moment (${error.sqlMessage})`);
+        return;
+    }
+
+    if(getImageResult.length < 1) {
+        res.status(400).send('Error: The image does not exist or it is not owned by the specified user');
+        return;
+    }
+
+    // Delete entry from MySQL
+    try {
+        await dbQuery(`DELETE FROM Media WHERE MediaId='${mediaId}'`);
+    }
+    catch (error) {
+        res.status(500).send('Error: Could not delete image from Database at this moment');
+        console.log(`Error: Could not delete image from Database at this moment (${error.sqlMessage})`);
+        return;
+    }
+
+    // Delete from S3
+    const image = getImageResult[0];
+    const extension = image.Url.substring(image.Url.lastIndexOf('.'));
+    const params = { Bucket: process.env.bucket, Key: mediaId + extension };
+    let deleteMediaResult;
+    try {
+        deleteMediaResult = s3.deleteObject(params).promise(); 
+    } catch (error) {
+        res.status(500).send('Error: could not delete image from AWS S3 at the moment');
+        console.log(error);
+        return;
+    }
+
+    // TODO: Delete from Thumbnail bucket
+
+    res.status(200).send('Image deleted successfully');
 });
 
 router.put('/', function (req, res) {
