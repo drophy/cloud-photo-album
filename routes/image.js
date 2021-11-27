@@ -6,10 +6,12 @@ const { dbQuery } = require('./../db');
 
 // Deletes the specified picture. Requires 'mediaId' and 'userId' in body params
 router.delete('/', async function (req, res) {
+    console.log('Reached DELETE /image handler');
     const userId = req.body.userId;
     const mediaId = req.body.mediaId;
 
     // Get image data and verify user owns image
+    console.log('Getting the image...');
     let getImageResult;
     try {
         getImageResult = await dbQuery(`SELECT * FROM Media WHERE UserId='${userId}' AND MediaId='${mediaId}'`);
@@ -25,6 +27,7 @@ router.delete('/', async function (req, res) {
     }
 
     // Delete entry from MySQL
+    console.log('Deleting the image...');
     try {
         await dbQuery(`DELETE FROM Media WHERE MediaId='${mediaId}'`);
     } catch (error) {
