@@ -36,7 +36,7 @@ router.delete('/', async function (req, res) {
     res.status(200).send(getImageResult[0]);
 });
 
-router.post('/', upload.single('file'), async function (req, res) {
+router.post('/', async function (req, res) {
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId;
