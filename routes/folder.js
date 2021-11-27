@@ -2,10 +2,27 @@ const router = require('express').Router();
 
 const { dbQuery } = require('./../db');
 
+// Does the query to the DB. If requested, verifies result is not empty (useful for SELECTs). Returns null if there is an error.
+async function queryDatabase(query, errorMessage="There was a problem when trying to access the database", verifyLength=false) {
+    let result;
+    try {
+        result = await dbQuery(query)
+    } catch (error) {
+        console.log('Error: ' + errorMessage);
+        console.log(error);
+        return null;
+    }
+    
+    if(verifyLength && (!result || result.length < 1))  return null;
+
+    return result;
+}
+
 router.post('/', async (req, res) => {
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId; // id of parent folder
+    console.log(userId); // dbug
 
     // Find parent folder
     let query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
@@ -16,6 +33,13 @@ router.post('/', async (req, res) => {
         res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
     }
 
+    // CONTINUE ~ was replacing what's above
+    // let errorMessage = 'Could not get parent folder';
+    // const selectFolderResult = await queryDatabase(query, errorMessage, true);
+    // if(selectFolderResult === null) {
+    //     res.status().send(``);
+    // }
+
     // Verify user owns the folder
     const parentFolder = selectFolderResult[0];
     if(parentFolder.UserId != userId) {
@@ -24,7 +48,8 @@ router.post('/', async (req, res) => {
     }
 
     // Create folder
-    query = `INSERT INTO Folders (UserId, ParentId, Name, Children) VALUES (${userId}, ${folderId}, '${name}', '[]');`;
+    console.log(userId); // dbug
+    query = `INSERT INTO Folders (UserId, ParentId, Name, Children) VALUES ('${userId}', ${folderId}, '${name}', '[]');`;
     let createFolderResult;
     try {
         createFolderResult = await dbQuery(query);

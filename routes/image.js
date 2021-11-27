@@ -99,6 +99,7 @@ router.put('/', function (req, res) {
 })
 
 router.post('/', upload.single('file'), async function (req, res) {
+    console.log('Got to last handler of POST /image');
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId;
@@ -112,7 +113,9 @@ router.post('/', upload.single('file'), async function (req, res) {
     }
 
     // UPLOAD IMAGE TO S3
+    console.log('About to read image from temp');
     const fileContent = fs.readFileSync(req.file.path);
+    console.log('Read image from temp. Uploading to S3...');
     const mediaId = uuidv4();
     const imgExtension = name.substring(name.lastIndexOf('.'));
     const params = {
@@ -131,19 +134,22 @@ router.post('/', upload.single('file'), async function (req, res) {
         fs.remove(req.file.path);
         return;
     }
+    console.log('Uploaded to S3. Removing image from temp...');
 
     // Remove temp copy we created in server
     fs.remove(req.file.path);
+    console.log('Image removed from temp');
     
     // UPDATE MYSQL DB
     // Media table
     let query = `INSERT INTO Media (MediaId, UserId, ParentId, Name, Url, Location) 
-                VALUES ('${mediaId}', ${userId}, ${folderId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
+                VALUES ('${mediaId}', '${userId}', ${folderId}, '${name}', '${uploadImageResult.Location}', '${location}');`;
     let mediaTableInsertResult;
     try {
         mediaTableInsertResult = await dbQuery(query);
     } catch (error) {
         res.status(400).send(error.sqlMessage || 'Error: Could not insert image into media table');
+        console.log(error);
         return;
     }
 
