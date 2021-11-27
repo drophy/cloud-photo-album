@@ -1,36 +1,41 @@
 const router = require('express').Router();
 
 const { dbQuery } = require('./../db');
+const Utils = require('./../utils');
 
 ///// ROUTES /////
 
 // Deletes the specified picture. Requires 'mediaId' and 'userId' in body params
 router.delete('/', async function (req, res) {
-    console.log('Reached DELETE /image handler');
+    console.log('-I- Reached DELETE /image');
     const userId = req.body.userId;
     const mediaId = req.body.mediaId;
-    console.log('userId', userId, typeof userId);
-    console.log('mediaId', mediaId, typeof mediaId);
 
     // Get image data and verify user owns image
-    console.log('Getting the image...');
-    let getImageResult;
-    try {
-        getImageResult = await dbQuery(`SELECT * FROM Media WHERE UserId='${userId}' AND MediaId='${mediaId}'`);
-    } catch (error) {
-        res.status(500).send('Error: Could not reach the image at this moment');
-        console.log(`Error: Could not reach the image at this moment (${error.sqlMessage})`);
-        return;
-    }
+    // let getImageResult;
+    // try {
+    //     getImageResult = await dbQuery(`SELECT * FROM Media WHERE UserId='${userId}' AND MediaId='${mediaId}'`);
+    // } catch (error) {
+    //     res.status(500).send('Error: Could not reach the image at this moment');
+    //     console.log(`Error: Could not reach the image at this moment (${error.sqlMessage})`);
+    //     return;
+    // }
 
-    if (getImageResult.length < 1) {
-        res.status(400).send('Error: The image does not exist or it is not owned by the specified user');
-        console.log('There was a request to delete an image, but the query to the DB gave no results');
+    // if (getImageResult.length < 1) {
+    //     res.status(400).send('Error: The image does not exist or it is not owned by the specified user');
+    //     console.log('There was a request to delete an image, but the query to the DB gave no results');
+    //     return;
+    // }
+
+    let query = `SELECT * FROM Media WHERE UserId='${userId}' AND MediaId='${mediaId}'`;
+    let errorMessage = 'Error: DB unavailable or the requested image from the specified user does not exist';
+    const getImageResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(getImageResult.status != 200) {
+        res.status(getImageResult.status).send(errorMessage);
         return;
     }
 
     // Delete entry from MySQL
-    console.log('Deleting the image...');
     try {
         await dbQuery(`DELETE FROM Media WHERE MediaId='${mediaId}'`);
     } catch (error) {
@@ -39,10 +44,13 @@ router.delete('/', async function (req, res) {
         return;
     }
 
-    res.status(200).send(getImageResult[0]);
+    // res.status(200).send(getImageResult[0]);
+    res.status(200).send(getImageResult.data[0]);
+    console.log('-I- Image deleted from MySQL');
 });
 
 router.post('/', async function (req, res) {
+    console.log('-I- Reached POST /image');
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId;
@@ -63,17 +71,26 @@ router.post('/', async function (req, res) {
     }
 
     // Find folder
-    query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
-    let selectFolderResult;
-    try {
-        selectFolderResult = await dbQuery(query);
-    } catch (error) {
-        res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+    // query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
+    // let selectFolderResult;
+    // try {
+    //     selectFolderResult = await dbQuery(query);
+    // } catch (error) {
+    //     res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+    //     return;
+    // }
+
+    query =  `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
+    let errorMessage = `Error: Could not find a folder with id ${folderId}`;
+    const selectFolderResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(selectFolderResult.status != 200) {
+        res.status(selectFolderResult.status).send(errorMessage);
         return;
     }
 
     // Verify user owns the folder
-    const folder = selectFolderResult[0];
+    // const folder = selectFolderResult[0];
+    const folder = selectFolderResult.data[0];
 
     if (folder.UserId != userId) {
         res.status(400).send("Error: Folder doesn't belong to user");
@@ -96,9 +113,11 @@ router.post('/', async function (req, res) {
 
     // Inform request was successful
     res.status(200).send('Image created (tags are currently ignored)');
+    console.log('Image data saved in MySQL');
 });
 
 /*router.put('/', function (req, res) {
+    console.log('-I- Reached PUT /image');
     // TODO: update in MySQL as well
     var OLD_KEY = req.body.name;
     var NEW_KEY = req.body.newName;
@@ -118,6 +137,7 @@ router.post('/', async function (req, res) {
         if (err) throw err;
         res.send(data);
     })
+    console.log('Image updated in MySQL');
 })*/
 
 module.exports = router;

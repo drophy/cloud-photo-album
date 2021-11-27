@@ -1,54 +1,31 @@
 const router = require('express').Router();
 
 const { dbQuery } = require('./../db');
-
-// Does the query to the DB. If requested, verifies result is not empty (useful for SELECTs). Returns null if there is an error.
-async function queryDatabase(query, errorMessage="There was a problem when trying to access the database", verifyLength=false) {
-    let result;
-    try {
-        result = await dbQuery(query)
-    } catch (error) {
-        console.log('Error: ' + errorMessage);
-        console.log(error);
-        return null;
-    }
-    
-    if(verifyLength && (!result || result.length < 1))  return null;
-
-    return result;
-}
+const Utils = require('./../utils');
 
 router.post('/', async (req, res) => {
+    console.log('-I- Reached POST /folder');
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId; // id of parent folder
-    console.log(userId); // dbug
 
     // Find parent folder
     let query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`;
-    let selectFolderResult;
-    try {
-        selectFolderResult = await dbQuery(query);
-    } catch (error) {
-        res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+    let errorMessage = `Error: Could not find a folder with id ${folderId}`;
+    const selectFolderResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(selectFolderResult.status != 200) {
+        res.status(selectFolderResult.status).send(errorMessage);
+        return;
     }
 
-    // CONTINUE ~ was replacing what's above
-    // let errorMessage = 'Could not get parent folder';
-    // const selectFolderResult = await queryDatabase(query, errorMessage, true);
-    // if(selectFolderResult === null) {
-    //     res.status().send(``);
-    // }
-
     // Verify user owns the folder
-    const parentFolder = selectFolderResult[0];
+    const parentFolder = selectFolderResult.data[0];
     if(parentFolder.UserId != userId) {
         res.status(400).send("Error: Folder doesn't belong to user");
         return;
     }
 
     // Create folder
-    console.log(userId); // dbug
     query = `INSERT INTO Folders (UserId, ParentId, Name, Children) VALUES ('${userId}', ${folderId}, '${name}', '[]');`;
     let createFolderResult;
     try {
@@ -74,50 +51,54 @@ router.post('/', async (req, res) => {
 
     // Inform request was successful
     res.status(200).send('Folder created');
+    console.log('-I- Folder created');
 });
 
 router.get('/', async (req, res) => {
+    console.log('-I- Reached GET /folder');
     const userId = req.query.userId;
     const folderId = req.query.folderId;
     
     // Get data about the folder
-    let selectFolderResult;
-    try {
-        selectFolderResult = await dbQuery(`SELECT * FROM Folders WHERE FolderId = ${folderId}`);
-    } catch (error) {
-        res.status(400).send(error.sqlMessage || `Error: Could not find a folder with id ${folderId}`);
+    let query = `SELECT * FROM Folders WHERE FolderId = ${folderId}`
+    let errorMessage = `Error: Could not find a folder with id ${folderId}`;
+    const selectFolderResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(selectFolderResult.status !== 200) {
+        res.status(selectFolderResult.status).send(errorMessage);
+        return;
     }
-    const folderData = selectFolderResult[0];
 
     // Verify user owns the folder
+    const folderData = selectFolderResult.data[0];
     if(folderData.UserId != userId) {
         res.status(400).send("Error: Folder doesn't belong to user");
         return;
     }
 
     // Get children folders
-    let getFoldersResult;
-    try {
-        getFoldersResult = await dbQuery(`SELECT * FROM Folders WHERE ParentId = ${folderId}`);
-    } catch (error) {
-        res.status(500).send(error.sqlMessage || `Error: Could not get children folders`);
+    query = `SELECT * FROM Folders WHERE ParentId = ${folderId}`;
+    errorMessage = `Error: Could not get children folders`;
+    const getFoldersResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(getFoldersResult.status !== 200) {
+        res.status(getFoldersResult.status).send(errorMessage);
         return;
     }
 
-    const folders = getFoldersResult.map(f => { return {'folderId': f.FolderId, 'name': f.Name} });
+    const folders = getFoldersResult.data.map(f => { return {'folderId': f.FolderId, 'name': f.Name} });
     
     // Get children images
-    let getImagesResult;
-    try {
-        getImagesResult = await dbQuery(`SELECT * FROM Media WHERE ParentId = ${folderId}`);
-    } catch (error) {
-        res.status(500).send(error.sqlMessage || `Error: Could not get images`);
+    query = `SELECT * FROM Media WHERE ParentId = ${folderId}`;
+    errorMessage = `Error: Could not get images`;
+    const getImagesResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(getImagesResult.status !== 200) {
+        res.status(getImagesResult.status).send(errorMessage);
         return;
     }
 
-    const images = getImagesResult.map(i => { return {'mediaId': i.MediaId, 'name': i.Name, 'url': i.Url, 'thumbnailUrl': i.ThumbnailUrl} });
+    const images = getImagesResult.data.map(i => { return {'mediaId': i.MediaId, 'name': i.Name, 'url': i.Url, 'thumbnailUrl': i.ThumbnailUrl} });
 
     res.status(200).send({folderName: folderData.Name, folders, images});
+    console.log('-I- Returned folder data');
 });
 
 module.exports = router;

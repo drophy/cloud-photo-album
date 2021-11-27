@@ -1,9 +1,12 @@
 const router = require('express').Router();
+
 const { dbQuery } = require('./../db');
+const Utils = require('./../utils');
 
 // Returns folderId of the root folder of the user. An 'email' and 'userId' query params are required.
 // If the user did not exist, it will be created
 router.get('/', async (req, res) => {
+    console.log('-I- Reached GET /folder');
     const userId = req.query.userId;
     const email = req.query.email;
 
@@ -13,18 +16,16 @@ router.get('/', async (req, res) => {
     }
 
     // See if user exists
-    let selectUserResult;
-    try {
-        selectUserResult = await dbQuery(`SELECT * FROM Users WHERE UserId='${userId}'`);
-    }
-    catch (error) {
-        res.status(500).send('Error: Could not verify if user exists');
-        console.log(`Error: Could not verify if user exists (${error.sqlMessage})`);
+    let query = `SELECT * FROM Users WHERE UserId='${userId}'`;
+    let errorMessage = 'Error: Could not verify if user exists';
+    const selectUserResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(selectUserResult.status != 200) {
+        res.status(selectUserResult.status).send(errorMessage);
         return;
     }
 
     // If it does, figure out root folder id
-    if(selectUserResult.length > 0)
+    if(selectUserResult.data.length > 0)
     {
         let getRootResult;
         try {
@@ -41,6 +42,7 @@ router.get('/', async (req, res) => {
         }
         const rootFolder = getRootResult[0];
         res.status(200).send({folderId: rootFolder.FolderId});
+        console.log('-I- Returned the id of root folder');
     }
     else
     {
@@ -67,6 +69,7 @@ router.get('/', async (req, res) => {
         
         // Return folder id
         res.status(200).send({folderId: createFolderResult.insertId});
+        console.log('-I- Created the user and returned the id of root folder');
     }
 });
 
