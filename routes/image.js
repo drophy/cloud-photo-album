@@ -9,6 +9,8 @@ router.delete('/', async function (req, res) {
     console.log('Reached DELETE /image handler');
     const userId = req.body.userId;
     const mediaId = req.body.mediaId;
+    console.log('userId', userId, typeof userId);
+    console.log('mediaId', mediaId, typeof mediaId);
 
     // Get image data and verify user owns image
     console.log('Getting the image...');
@@ -23,6 +25,7 @@ router.delete('/', async function (req, res) {
 
     if (getImageResult.length < 1) {
         res.status(400).send('Error: The image does not exist or it is not owned by the specified user');
+        console.log('There was a request to delete an image, but the query to the DB gave no results');
         return;
     }
 
