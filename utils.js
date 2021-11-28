@@ -12,7 +12,10 @@ async function queryDatabase(query, errorMessage="There was a problem when tryin
         return {data: null, status: 500};
     }
     
-    if(verifyLength && (!result || result.length < 1))  return {data: null, status: 400};
+    if(verifyLength && (!result || result.length < 1))  {
+        console.log('-E- Error: ' + errorMessage + '(the DB returned 0 results for the query)');
+        return {data: null, status: 400};
+    }
 
     return {data: result, status: 200};
 }
