@@ -101,4 +101,37 @@ router.get('/', async (req, res) => {
     console.log('-I- Returned folder data');
 });
 
+// Returns the folders and images of the user that contain 'searchTerm' in their name
+// This is (currently) regardless of the folder they're in
+router.get('/search', async (req, res) => {
+    console.log(`-I- Reached GET /folder/search with query "${req.query.query}"`);
+    const userId = req.query.userId;
+    const searchTerm = req.query.query;
+
+    // Get matching folders
+    query = `SELECT * FROM Folders WHERE UserId = "${userId}" AND Name LIKE "%${searchTerm}%" ORDER BY Name`;
+    errorMessage = `Error: Could not get children folders`;
+    const getFoldersResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(getFoldersResult.status !== 200) {
+        res.status(getFoldersResult.status).send(errorMessage);
+        return;
+    }
+
+    const folders = getFoldersResult.data.map(f => { return {'folderId': f.FolderId, 'name': f.Name} });
+
+    // Find matching images
+    query = `SELECT * FROM Media WHERE UserId = "${userId}" AND Name LIKE "%${searchTerm}%" ORDER BY Name`;
+    errorMessage = `Error: Could not get images`;
+    const getImagesResult = await Utils.queryDatabase(query, errorMessage, true);
+    if(getImagesResult.status !== 200) {
+        res.status(getImagesResult.status).send(errorMessage);
+        return;
+    }
+
+    const images = getImagesResult.data.map(i => { return {'mediaId': i.MediaId, 'name': i.Name, 'url': i.Url, 'thumbnailUrl': i.ThumbnailUrl} });
+
+    res.status(200).send({folders, images});
+    console.log(`-I- Returned results for query`);
+});
+
 module.exports = router;
