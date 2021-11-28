@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
     }
 
     // Get children folders
-    query = `SELECT * FROM Folders WHERE ParentId = ${folderId}`;
+    query = `SELECT * FROM Folders WHERE ParentId = ${folderId} ORDER BY Name`;
     errorMessage = `Error: Could not get children folders`;
     const getFoldersResult = await Utils.queryDatabase(query, errorMessage, true);
     if(getFoldersResult.status !== 200) {
@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
     const folders = getFoldersResult.data.map(f => { return {'folderId': f.FolderId, 'name': f.Name} });
     
     // Get children images
-    query = `SELECT * FROM Media WHERE ParentId = ${folderId}`;
+    query = `SELECT * FROM Media WHERE ParentId = ${folderId} ORDER BY Name`;
     errorMessage = `Error: Could not get images`;
     const getImagesResult = await Utils.queryDatabase(query, errorMessage, true);
     if(getImagesResult.status !== 200) {
