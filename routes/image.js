@@ -55,7 +55,7 @@ router.post('/', async function (req, res) {
     const userId = req.body.userId;
     const folderId = req.body.folderId;
     const mediaId = req.body.mediaId;
-    const location = req.body.location;
+    const location = req.body.location || '';
     const url = req.body.url;
 
     // UPDATE MYSQL DB

@@ -99,15 +99,7 @@ router.put('/', function (req, res) {
     })
 })
 
-router.post('/', (req, res) => {
-    console.log('Reached my weird middleware');
-    console.log('req.body:\n', req.body);
-    console.log('req.file:\n', req.file);
-    console.log('Done with my weird middleware');
-    next();
-}, 
-upload.single('file'), 
-async function (req, res) {
+router.post('/', upload.single('file'), async function (req, res) {
     console.log('-I- Got to last handler of POST /image');
     const name = req.body.name;
     const userId = req.body.userId;
