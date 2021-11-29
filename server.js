@@ -17,5 +17,5 @@ app.use(express.json()); // parse JSON and place it in req.body
 ///// ROUTES /////
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
-app.get(`/`, (req, res) => res.send(`Welcome to Cloud Photo Album's API!!! c:`) );
+app.get(`/`, (req, res) => res.send(`A change has ocurred!`) );
 app.use(router);
