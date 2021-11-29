@@ -39,7 +39,8 @@ router.delete('/', async function (req, res) {
     }
     catch (error) {
         res.status(500).send('Error: Could not reach the image at this moment');
-        console.log(`Error: Could not reach the image at this moment (${error.sqlMessage})`);
+        console.log(`Error: Could not reach the image at this moment`);
+        console.log(error.sqlMessage || error);
         return;
     }
 
@@ -99,11 +100,17 @@ router.put('/', function (req, res) {
 })
 
 router.post('/', upload.single('file'), async function (req, res) {
-    console.log('Got to last handler of POST /image');
+    console.log('-I- Got to last handler of POST /image');
     const name = req.body.name;
     const userId = req.body.userId;
     const folderId = req.body.folderId;
     const location = req.body.location;
+    console.log(`
+        name: ${name} 
+        userId: ${userId} 
+        folderId: ${folderId} 
+        location: ${location} 
+    `);
 
     let tags;
     try {
@@ -186,7 +193,7 @@ router.post('/', upload.single('file'), async function (req, res) {
     // TODO: TAGS TABLE
 
     // Inform request was successful
-    res.status(200).send('Image created (tags are currently ignored)');
+    res.status(200).send('-I- Image created (tags are currently ignored)');
 });
 
 module.exports = router;

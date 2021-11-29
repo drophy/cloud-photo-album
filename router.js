@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const folderRouter = require('./routes/folder');
-const imageRouter = require('./routes/image');
+const imageRouter = require('./routes/image_old');
 const userRouter = require('./routes/user');
 
 router.use('/folder', folderRouter);
