@@ -143,12 +143,15 @@ router.delete('/', async (req, res) => {
     // TODO: Delete images from S3 - send s3Keys to other server
     
     // Delete images
-    let query = `DELETE FROM Media WHERE MediaId IN(${imageIds.join(', ')})`;
-    let errorMessage = `Could not delete children images`;
-    const deleteImagesResult = await Utils.queryDatabase(query, errorMessage, true);
-    if(deleteImagesResult.status !== 200) {
-        res.status(deleteImagesResult.status).send(errorMessage);
-        return;
+    let query, errorMessage;
+    if(imageIds.length > 0) {
+        query = `DELETE FROM Media WHERE MediaId IN(${imageIds.join(', ')})`;
+        errorMessage = `Could not delete children images`;
+        const deleteImagesResult = await Utils.queryDatabase(query, errorMessage, true);
+        if(deleteImagesResult.status !== 200) {
+            res.status(deleteImagesResult.status).send(errorMessage);
+            return;
+        }
     }
 
     // Delete folders
