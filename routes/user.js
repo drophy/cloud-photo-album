@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
     // See if user exists
     let query = `SELECT * FROM Users WHERE UserId='${userId}'`;
     let errorMessage = 'Error: Could not verify if user exists';
-    const selectUserResult = await Utils.queryDatabase(query, errorMessage, true);
+    const selectUserResult = await Utils.queryDatabase(query, errorMessage);
     if(selectUserResult.status != 200) {
         res.status(selectUserResult.status).send(errorMessage);
         return;
