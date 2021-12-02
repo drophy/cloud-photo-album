@@ -105,24 +105,22 @@ router.post('/', upload.single('file'), async function (req, res) {
     const userId = req.body.userId;
     const folderId = req.body.folderId;
     const location = req.body.location || '';
-    console.log(`
-        name: ${name} 
-        userId: ${userId} 
-        folderId: ${folderId} 
-        location: ${location} 
-    `);
+    // console.log(`
+    //     name: ${name} 
+    //     userId: ${userId} 
+    //     folderId: ${folderId} 
+    //     location: ${location} 
+    // `);
 
-    let tags;
-    try {
-        tags = JSON.parse(req.body.tags);    
-    } catch (error) {
-        res.status(400).send('Error: tags field could not be parsed as JSON');
-    }
+    // let tags;
+    // try {
+    //     tags = JSON.parse(req.body.tags);    
+    // } catch (error) {
+    //     res.status(400).send('Error: tags field could not be parsed as JSON');
+    // }
 
     // UPLOAD IMAGE TO S3
-    console.log('About to read image from temp');
     const fileContent = fs.readFileSync(req.file.path);
-    console.log('Read image from temp. Uploading to S3...');
     const mediaId = uuidv4();
     const imgExtension = name.substring(name.lastIndexOf('.'));
     const params = {
@@ -141,11 +139,9 @@ router.post('/', upload.single('file'), async function (req, res) {
         fs.remove(req.file.path);
         return;
     }
-    console.log('Uploaded to S3. Removing image from temp...');
 
     // Remove temp copy we created in server
     fs.remove(req.file.path);
-    console.log('Image removed from temp');
     
     // UPDATE MYSQL DB
     // Media table
@@ -193,7 +189,8 @@ router.post('/', upload.single('file'), async function (req, res) {
     // TODO: TAGS TABLE
 
     // Inform request was successful
-    res.status(200).send('-I- Image created (tags are currently ignored)');
+    res.status(200).send('Image created');
+    console.log('-I- Image created');
 });
 
 module.exports = router;
