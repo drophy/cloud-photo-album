@@ -172,12 +172,12 @@ router.delete('/', async (req, res) => {
 router.get('/search', async (req, res) => {
     console.log(`-I- Reached GET /folder/search with query "${req.query.query}"`);
     const userId = req.query.userId;
-    const searchTerm = req.query.query;
+    const searchTerm = req.query.query || '';
 
     // Get matching folders
     query = `SELECT * FROM Folders WHERE UserId = "${userId}" AND Name LIKE "%${searchTerm}%" ORDER BY Name`;
     errorMessage = `Could not get children folders`;
-    const getFoldersResult = await Utils.queryDatabase(query, errorMessage, true);
+    const getFoldersResult = await Utils.queryDatabase(query, errorMessage);
     if(getFoldersResult.status !== 200) {
         res.status(getFoldersResult.status).send(errorMessage);
         return;
@@ -188,7 +188,7 @@ router.get('/search', async (req, res) => {
     // Find matching images
     query = `SELECT * FROM Media WHERE UserId = "${userId}" AND Name LIKE "%${searchTerm}%" ORDER BY Name`;
     errorMessage = `Could not get images`;
-    const getImagesResult = await Utils.queryDatabase(query, errorMessage, true);
+    const getImagesResult = await Utils.queryDatabase(query, errorMessage);
     if(getImagesResult.status !== 200) {
         res.status(getImagesResult.status).send(errorMessage);
         return;
